@@ -164,3 +164,31 @@ connect_uses_correct_client_args_test() ->
 
     meck:unload(http),
     ?assert(Result =:= Expected).
+
+connect_successful_connection_passes_to_handle_connection_test() ->
+    RequestId = 1234,
+    Callback = 4567,
+
+    code:unstick_mod(http),
+    meck:new(http),
+    meck:expect(http, request, fun(_, _, _, _) -> {ok, RequestId} end),
+    meck:new(stream_client, [passthrough]),
+    meck:expect(stream_client, handle_connection,
+        fun(PassedCallback, PassedRequestId) ->
+            case {PassedCallback, PassedRequestId} of
+                {Callback, RequestId} ->
+                    {ok, test_ok};
+
+                _ ->
+                    {error, invalid_params}
+            end
+        end
+    ),
+
+    Result = stream_client:connect(?TEST_URL, [], "", Callback),
+    Expected = {ok, test_ok},
+
+    meck:unload(http),
+    meck:unload(stream_client),
+
+    ?assert(Result =:= Expected).

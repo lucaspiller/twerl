@@ -2,7 +2,9 @@
 -export([
           generate_headers/0,
           generate_auth_headers/2,
-          generate_auth_headers/3
+          generate_auth_headers/3,
+          userids_to_follow/1,
+          keywords_to_track/1
         ]).
 
 -spec generate_headers() -> list().
@@ -22,3 +24,26 @@ generate_auth_headers(User, Pass, Headers) ->
     [
         {"Authorization", Basic} | Headers
     ].
+
+-spec userids_to_follow(list()) -> {ok, string()} | {error, reason}.
+userids_to_follow(UserIds) ->
+    args_to_params("follow", UserIds).
+
+-spec keywords_to_track(list()) -> {ok, string()} | {error, reason}.
+keywords_to_track(Keywords) ->
+    args_to_params("track", Keywords).
+
+-spec args_to_params(string(), list()) -> {ok, string()} | {error, reason}.
+args_to_params(_Method, []) ->
+    {error, no_args_passed};
+
+args_to_params(Method, [Current | Remaining]) ->
+    Acc = Method ++ "=" ++ Current,
+    args_to_params(Method, Remaining, Acc).
+
+args_to_params(_Method, [], Acc) ->
+    {ok, Acc};
+
+args_to_params(Method, [Current | Remaining], Acc) ->
+    NewAcc = Acc ++ "," ++ Current,
+    args_to_params(Method, Remaining, NewAcc).

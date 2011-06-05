@@ -27,3 +27,39 @@ generate_headers_test() ->
     ],
 
     ?assert(Result =:= Expected).
+
+userids_to_follow_one_userid_test() ->
+    Result = stream_client_util:userids_to_follow(["1"]),
+    Expected = {ok, "follow=1"},
+
+    ?assert(Result =:= Expected).
+
+userids_to_follow_two_userids_test() ->
+    Result = stream_client_util:userids_to_follow(["1", "2"]),
+    Expected = {ok, "follow=1,2"},
+
+    ?assert(Result =:= Expected).
+
+userids_to_follow_no_userids_test() ->
+    Result = stream_client_util:userids_to_follow([]),
+    Expected = {error, no_args_passed},
+
+    ?assert(Result =:= Expected).
+
+keywords_to_track_one_userid_test() ->
+    Result = stream_client_util:keywords_to_track(["1"]),
+    Expected = {ok, "track=1"},
+
+    ?assert(Result =:= Expected).
+
+keywords_to_track_two_userids_test() ->
+    Result = stream_client_util:keywords_to_track(["1", "2"]),
+    Expected = {ok, "track=1,2"},
+
+    ?assert(Result =:= Expected).
+
+keywords_to_track_no_userids_test() ->
+    Result = stream_client_util:keywords_to_track([]),
+    Expected = {error, no_args_passed},
+
+    ?assert(Result =:= Expected).

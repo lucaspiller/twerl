@@ -320,3 +320,41 @@ handle_connection_invalid_args_returns_error_test() ->
     after 100 ->
         ?assert(timeout)
     end.
+
+handle_connection_http_error_returns_error_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Child ! {http, {RequestId, {error, {connect_failed,{ref, {error,nxdomain}}}}}},
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({error, http_error}, Response)
+    after 100 ->
+        ?assert(timeout)
+    end.
+
+handle_connection_terminate_returns_ok_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Child ! terminate,
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({ok, RequestId}, Response)
+    after 100 ->
+        ?assert(timeout)
+    end.

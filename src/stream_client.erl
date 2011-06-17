@@ -27,5 +27,9 @@ handle_connection(Callback, RequestId) ->
             handle_connection(Callback, RequestId);
 
         {http,{RequestId, stream_end, _Headers}} ->
-            {ok, RequestId}
+            {ok, RequestId};
+
+        Other ->
+            error_logger:info_msg("stream_client#handle_connection received unexpected message: ~p~n", [Other]),
+            handle_connection(Callback, RequestId)
     end.

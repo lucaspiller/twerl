@@ -19,15 +19,18 @@ connect(Url, Headers, PostData, Callback) ->
 -spec handle_connection(term(), term()) -> ok | {error, reason}.
 handle_connection(Callback, RequestId) ->
     receive
-        {http,{RequestId, stream_start, _Headers}} ->
+        {http, {RequestId, stream_start, _Headers}} ->
             handle_connection(Callback, RequestId);
 
-        {http,{RequestId, stream, Data}} ->
+        {http, {RequestId, stream, Data}} ->
             _CallbackPid = spawn(fun() -> Callback(Data) end),
             handle_connection(Callback, RequestId);
 
-        {http,{RequestId, stream_end, _Headers}} ->
+        {http, {RequestId, stream_end, _Headers}} ->
             {ok, RequestId};
+
+        {http, {RequestId, {{_, 401, _}, _Headers, _Body}}} ->
+            {error, unauthorised};
 
         Other ->
             error_logger:info_msg("stream_client#handle_connection received unexpected message: ~p~n", [Other]),

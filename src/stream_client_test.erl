@@ -220,7 +220,7 @@ handle_connection_returns_ok_and_pid_on_stream_termination_test() ->
                 Parent ! {self(), response, Response}
         end),
 
-    Child ! {http,{RequestId, stream_end, []}},
+    Child ! {http, {RequestId, stream_end, []}},
 
     receive
         {Child, response, Response} ->
@@ -241,7 +241,7 @@ handle_connection_passes_data_to_callback_test() ->
         end),
 
     Data = data1234,
-    Child ! {http,{RequestId, stream, Data}},
+    Child ! {http, {RequestId, stream, Data}},
 
     receive
         {CallbackPid, callback, CallbackData} ->
@@ -264,9 +264,9 @@ handle_connection_full_flow_test() ->
         end),
 
     Data = data1234,
-    Child ! {http,{RequestId, stream_start, []}},
-    Child ! {http,{RequestId, stream, Data}},
-    Child ! {http,{RequestId, stream_end, []}},
+    Child ! {http, {RequestId, stream_start, []}},
+    Child ! {http, {RequestId, stream, Data}},
+    Child ! {http, {RequestId, stream_end, []}},
 
     receive
         {_CallbackPid, callback, CallbackData} ->
@@ -280,4 +280,23 @@ handle_connection_full_flow_test() ->
             ?assertEqual({ok, RequestId}, Response)
     after 100 ->
         ?assert(timeout_response)
+    end.
+
+handle_connection_unauthorised_returns_error_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Child ! {http, {RequestId, {{"HTTP/1.1", 401, "Unauthorised"}, [], "Not allowed"}}},
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({error, unauthorised}, Response)
+    after 100 ->
+        ?assert(timeout)
     end.

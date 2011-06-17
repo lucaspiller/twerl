@@ -23,7 +23,10 @@ handle_connection(Callback, RequestId) ->
             handle_connection(Callback, RequestId);
 
         {http, {RequestId, stream, Data}} ->
-            _CallbackPid = spawn(fun() -> Callback(Data) end),
+            spawn(fun() ->
+                DecodedData = stream_client_util:decode(Data),
+                Callback(DecodedData)
+            end),
             handle_connection(Callback, RequestId);
 
         {http, {RequestId, stream_end, _Headers}} ->

@@ -192,3 +192,92 @@ connect_successful_connection_passes_to_handle_connection_test() ->
     meck:unload(stream_client),
 
     ?assert(Result =:= Expected).
+
+handle_connection_blocks_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    receive
+        {Child, response, _Response} ->
+            ?assert(unexpected_response)
+    after 100 ->
+        ok
+    end.
+
+handle_connection_returns_ok_and_pid_on_stream_termination_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Child ! {http,{RequestId, stream_end, []}},
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({ok, RequestId}, Response)
+    after 100 ->
+        ?assert(timeout)
+    end.
+
+handle_connection_passes_data_to_callback_test() ->
+    Parent = self(),
+    Callback = fun(CallbackData) ->
+            Parent ! {self(), callback, CallbackData}
+    end,
+    RequestId = 1234,
+
+    Child = spawn(fun() ->
+                stream_client:handle_connection(Callback, RequestId)
+        end),
+
+    Data = data1234,
+    Child ! {http,{RequestId, stream, Data}},
+
+    receive
+        {CallbackPid, callback, CallbackData} ->
+            ?assertNot(Child =:= CallbackPid),
+            ?assertEqual(Data, CallbackData)
+    after 100 ->
+        ?assert(timeout)
+    end.
+
+handle_connection_full_flow_test() ->
+    Parent = self(),
+    Callback = fun(CallbackData) ->
+            Parent ! {self(), callback, CallbackData}
+    end,
+    RequestId = 1234,
+
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Data = data1234,
+    Child ! {http,{RequestId, stream_start, []}},
+    Child ! {http,{RequestId, stream, Data}},
+    Child ! {http,{RequestId, stream_end, []}},
+
+    receive
+        {_CallbackPid, callback, CallbackData} ->
+            ?assertEqual(Data, CallbackData)
+    after 100 ->
+        ?assert(timeout_callback)
+    end,
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({ok, RequestId}, Response)
+    after 100 ->
+        ?assert(timeout_response)
+    end.

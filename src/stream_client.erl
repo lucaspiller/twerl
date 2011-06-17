@@ -6,7 +6,7 @@
 
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
 
--spec connect(string(), list(), string(), term()) -> ok | {error, reason}.
+-spec connect(string(), list(), string(), fun()) -> ok | {error, reason}.
 connect(Url, Headers, PostData, Callback) ->
     case catch http:request(post, {Url, Headers, ?CONTENT_TYPE, PostData}, [], [{sync, false}, {stream, self}]) of
         {ok, RequestId} ->
@@ -17,5 +17,15 @@ connect(Url, Headers, PostData, Callback) ->
     end.
 
 -spec handle_connection(term(), term()) -> ok | {error, reason}.
-handle_connection(_Callback, _RequestId) ->
-    {error, unimplemented}.
+handle_connection(Callback, RequestId) ->
+    receive
+        {http,{RequestId, stream_start, _Headers}} ->
+            handle_connection(Callback, RequestId);
+
+        {http,{RequestId, stream, Data}} ->
+            _CallbackPid = spawn(fun() -> Callback(Data) end),
+            handle_connection(Callback, RequestId);
+
+        {http,{RequestId, stream_end, _Headers}} ->
+            {ok, RequestId}
+    end.

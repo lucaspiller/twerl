@@ -32,6 +32,9 @@ handle_connection(Callback, RequestId) ->
         {http, {RequestId, {{_, 401, _}, _Headers, _Body}}} ->
             {error, unauthorised};
 
+        {http, {RequestId, {{_, 406, _}, _Headers, Body}}} ->
+            {error, {invalid_params, Body}};
+
         Other ->
             error_logger:info_msg("stream_client#handle_connection received unexpected message: ~p~n", [Other]),
             handle_connection(Callback, RequestId)

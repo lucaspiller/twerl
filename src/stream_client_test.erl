@@ -300,3 +300,23 @@ handle_connection_unauthorised_returns_error_test() ->
     after 100 ->
         ?assert(timeout)
     end.
+
+handle_connection_invalid_args_returns_error_test() ->
+    Callback = fun(_Data) -> ok end,
+    RequestId = 1234,
+
+    Parent = self(),
+    Child = spawn(fun() ->
+                Response = stream_client:handle_connection(Callback, RequestId),
+                Parent ! {self(), response, Response}
+        end),
+
+    Body = <<"Params invalid">>,
+    Child ! {http, {RequestId, {{"HTTP/1.1", 406, "Not Acceptable"}, [], Body}}},
+
+    receive
+        {Child, response, Response} ->
+            ?assertEqual({error, {invalid_params, Body}}, Response)
+    after 100 ->
+        ?assert(timeout)
+    end.

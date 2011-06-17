@@ -6,22 +6,22 @@ An Erlang client for the Twitter streaming API.
 
 Generate auth headers:
 
-  Headers = stream_client_util:generate_auth_headers(TwitterUsername, TwitterPassword).
+    Headers = stream_client_util:generate_auth_headers(TwitterUsername, TwitterPassword).
 
 Generate params:
 
-  {ok, Params} = stream_client_util:keywords_to_track(["erlang"]).
+    {ok, Params} = stream_client_util:keywords_to_track(["erlang"]).
 
 Build a callback function:
 
-  Callback = fun(Data) ->
-    Tweet = proplists:get_value(<<"text">>, Data),
-    io:format("Erlang <3: ~s~n", [Tweet])
-  end.
+    Callback = fun(Data) ->
+      Tweet = proplists:get_value(<<"text">>, Data),
+      io:format("Erlang <3: ~s~n", [Tweet])
+    end.
 
 Start streaming:
 
-  stream_client:connect(stream_client_util:filter_url(), Headers, Params, Callback).
+    stream_client:connect(stream_client_util:filter_url(), Headers, Params, Callback).
 
 ## Contributing
 

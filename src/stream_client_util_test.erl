@@ -63,3 +63,10 @@ keywords_to_track_no_userids_test() ->
     Expected = {error, no_args_passed},
 
     ?assert(Result =:= Expected).
+
+decode_test() ->
+    Data = <<"{\"name\":\"Bob\"}">>,
+    Expected = [{<<"name">>, <<"Bob">>}],
+    Result = stream_client_util:decode(Data),
+
+    ?assertEqual(Expected, Result).

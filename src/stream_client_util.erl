@@ -5,7 +5,8 @@
           generate_auth_headers/3,
           userids_to_follow/1,
           keywords_to_track/1,
-          filter_url/0
+          filter_url/0,
+          decode/1
         ]).
 
 -spec generate_headers() -> list().
@@ -52,3 +53,8 @@ args_to_params(Method, [Current | Remaining], Acc) ->
 -spec filter_url() -> string().
 filter_url() ->
     "http://stream.twitter.com/1/statuses/filter.json".
+
+-spec decode(binary()) -> list().
+decode(Data) ->
+    {struct, Decoded} = mochijson2:decode(Data),
+    Decoded.

@@ -4,7 +4,8 @@
           generate_auth_headers/2,
           generate_auth_headers/3,
           userids_to_follow/1,
-          keywords_to_track/1
+          keywords_to_track/1,
+          filter_url/0
         ]).
 
 -spec generate_headers() -> list().
@@ -47,3 +48,7 @@ args_to_params(_Method, [], Acc) ->
 args_to_params(Method, [Current | Remaining], Acc) ->
     NewAcc = Acc ++ "," ++ Current,
     args_to_params(Method, Remaining, NewAcc).
+
+-spec filter_url() -> string().
+filter_url() ->
+    "http://stream.twitter.com/1/statuses/filter.json".

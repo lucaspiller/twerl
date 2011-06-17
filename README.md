@@ -1,6 +1,6 @@
 # Twerl
 
-An Erlang client for the Twitter streaming API.
+An Erlang client for the Twitter Streaming API.
 
 ## Usage
 

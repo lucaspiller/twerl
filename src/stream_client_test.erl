@@ -240,13 +240,14 @@ handle_connection_passes_data_to_callback_test() ->
                 stream_client:handle_connection(Callback, RequestId)
         end),
 
-    Data = data1234,
+    Data = <<"{\"text\":\"data1234\"}">>,
+    DecodedData = [{<<"text">>, <<"data1234">>}],
     Child ! {http, {RequestId, stream, Data}},
 
     receive
         {CallbackPid, callback, CallbackData} ->
             ?assertNot(Child =:= CallbackPid),
-            ?assertEqual(Data, CallbackData)
+            ?assertEqual(DecodedData, CallbackData)
     after 100 ->
         ?assert(timeout)
     end.
@@ -263,14 +264,15 @@ handle_connection_full_flow_test() ->
                 Parent ! {self(), response, Response}
         end),
 
-    Data = data1234,
+    Data = <<"{\"text\":\"data1234\"}">>,
+    DecodedData = [{<<"text">>, <<"data1234">>}],
     Child ! {http, {RequestId, stream_start, []}},
     Child ! {http, {RequestId, stream, Data}},
     Child ! {http, {RequestId, stream_end, []}},
 
     receive
         {_CallbackPid, callback, CallbackData} ->
-            ?assertEqual(Data, CallbackData)
+            ?assertEqual(DecodedData, CallbackData)
     after 100 ->
         ?assert(timeout_callback)
     end,

@@ -2,7 +2,26 @@
 
 An Erlang client for the Twitter Streaming API.
 
+## Goals
+
+* A lightweight client which can consume the Twitter Streaming API (DONE).
+* A client manager which allows you to change the search queries without losing any data (WIP).
+
 ## Usage
+
+You probably want to include it as a depedency in Rebar:
+
+    {deps,
+      [
+        {twerl, ".*", {git, "https://github.com/lucaspiller/twerl.git", "master"}},
+      ]
+    }.
+
+### Manager
+
+WIP
+
+### Client
 
 Generate auth headers:
 
@@ -22,6 +41,20 @@ Build a callback function:
 Start streaming:
 
     stream_client:connect(stream_client_util:filter_url(), Headers, Params, Callback).
+
+## Development
+
+Start an Erlang shell with reloader support:
+
+    make dev
+
+Compile new code:
+
+    make compile
+
+Run eunit tests:
+
+    make eunit
 
 ## Contributing
 

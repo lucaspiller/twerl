@@ -7,5 +7,9 @@ compile: deps
 dev: compile
 	erl -pa deps/*/ebin -pa ebin -s inets start -s reloader start
 
-eunit:
+eunit: compile
 	./rebar eunit app=twerl
+
+clean:
+	./rebar clean
+	rm -Rf .eunit

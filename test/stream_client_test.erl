@@ -6,20 +6,20 @@
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
 
 connect_returns_http_error_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, something_went_wrong}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_post_method_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request,
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request,
         fun(Method, _, _, _) ->
             case Method of
                 post ->
@@ -34,13 +34,13 @@ connect_uses_post_method_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_url_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request,
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request,
         fun(_, Args, _, _) ->
             case Args of
                 {?TEST_URL, _, _, _} ->
@@ -55,14 +55,14 @@ connect_uses_correct_url_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_headers_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
+    code:unstick_mod(httpc),
+    meck:new(httpc),
     Headers = [a, b, c],
-    meck:expect(http, request,
+    meck:expect(httpc, request,
         fun(_, Args, _, _) ->
             case Args of
                 {_, Headers, _, _} ->
@@ -77,13 +77,13 @@ connect_uses_correct_headers_test() ->
     Result = stream_client:connect(?TEST_URL, Headers, "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_content_type_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request,
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request,
         fun(_, Args, _, _) ->
             case Args of
                 {_, _, ?CONTENT_TYPE, _} ->
@@ -98,14 +98,14 @@ connect_uses_correct_content_type_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_post_data_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
+    code:unstick_mod(httpc),
+    meck:new(httpc),
     PostData = "test123",
-    meck:expect(http, request,
+    meck:expect(httpc, request,
         fun(_, Args, _, _) ->
             case Args of
                 {_, _, _, PostData} ->
@@ -120,13 +120,13 @@ connect_uses_correct_post_data_test() ->
     Result = stream_client:connect(?TEST_URL, "", PostData, self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_other_params_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request,
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request,
         fun(_, _, Args, _) ->
             case Args of
                 [] ->
@@ -141,13 +141,13 @@ connect_uses_correct_other_params_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_uses_correct_client_args_test() ->
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request,
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request,
         fun(_, _, _, Args) ->
             case Args of
                 [{sync, false}, {stream, self}] ->
@@ -162,16 +162,16 @@ connect_uses_correct_client_args_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", self()),
     Expected = {error, {http_error, test_ok}},
 
-    meck:unload(http),
+    meck:unload(httpc),
     ?assert(Result =:= Expected).
 
 connect_successful_connection_passes_to_handle_connection_test() ->
     RequestId = 1234,
     Callback = 4567,
 
-    code:unstick_mod(http),
-    meck:new(http),
-    meck:expect(http, request, fun(_, _, _, _) -> {ok, RequestId} end),
+    code:unstick_mod(httpc),
+    meck:new(httpc),
+    meck:expect(httpc, request, fun(_, _, _, _) -> {ok, RequestId} end),
     meck:new(stream_client, [passthrough]),
     meck:expect(stream_client, handle_connection,
         fun(PassedCallback, PassedRequestId) ->
@@ -188,7 +188,7 @@ connect_successful_connection_passes_to_handle_connection_test() ->
     Result = stream_client:connect(?TEST_URL, [], "", Callback),
     Expected = {ok, test_ok},
 
-    meck:unload(http),
+    meck:unload(httpc),
     meck:unload(stream_client),
 
     ?assert(Result =:= Expected).

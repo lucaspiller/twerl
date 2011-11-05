@@ -333,11 +333,12 @@ handle_connection_http_error_returns_error_test() ->
                 Parent ! {self(), response, Response}
         end),
 
-    Child ! {http, {RequestId, {error, {connect_failed,{ref, {error,nxdomain}}}}}},
+    Error = {connect_failed, {ref, {error, nxdomain}}},
+    Child ! {http, {RequestId, {error, Error}}},
 
     receive
         {Child, response, Response} ->
-            ?assertEqual({error, http_error}, Response)
+            ?assertEqual({error, {http_error, Error}}, Response)
     after 100 ->
         ?assert(timeout)
     end.

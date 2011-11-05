@@ -46,8 +46,8 @@ handle_connection(Callback, RequestId) ->
 
         % connection error
         % may happen while connecting or after connected
-        {http, {RequestId, {error, _Reason}}} ->
-            {error, http_error};
+        {http, {RequestId, {error, Reason}}} ->
+            {error, {http_error, Reason}};
 
         % received terminate message
         terminate ->

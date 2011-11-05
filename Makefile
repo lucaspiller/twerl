@@ -1,3 +1,5 @@
+all: compile
+
 deps:
 	./rebar get-deps
 

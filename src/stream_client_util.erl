@@ -56,5 +56,10 @@ filter_url() ->
 
 -spec decode(binary()) -> list().
 decode(Data) ->
-    {Decoded} = jiffy:decode(Data),
-    Decoded.
+    case Data of
+        <<"\r\n">> ->
+            [];
+        _ ->
+            {Decoded} = jiffy:decode(Data),
+            Decoded
+    end.

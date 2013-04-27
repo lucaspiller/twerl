@@ -7,7 +7,7 @@ compile: deps
 	./rebar compile
 
 dev: compile
-	erl -pa deps/*/ebin -pa ebin -s inets start -s reloader start
+	erl -pa deps/*/ebin -pa ebin -s inets start -s ssl start -s reloader start
 
 test: spec
 

@@ -52,7 +52,7 @@ args_to_params(Method, [Current | Remaining], Acc) ->
 
 -spec filter_url() -> string().
 filter_url() ->
-    "http://stream.twitter.com/1/statuses/filter.json".
+    "https://stream.twitter.com/1/statuses/filter.json".
 
 -spec decode(binary()) -> list().
 decode(Data) ->

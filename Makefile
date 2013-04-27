@@ -9,10 +9,7 @@ compile: deps
 dev: compile
 	erl -pa deps/*/ebin -pa ebin -s inets start -s reloader start
 
-test: eunit spec
-	
-eunit: compile
-	./rebar eunit app=twerl
+test: spec
 
 spec: compile
 	./espec spec

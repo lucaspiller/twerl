@@ -54,9 +54,9 @@ Compile new code:
 
     make compile
 
-Run eunit tests:
+Run tests (written in [espec](https://github.com/lucaspiller/espec)):
 
-    make eunit
+    make test
 
 ## Contributing
 

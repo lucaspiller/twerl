@@ -1,5 +1,7 @@
 # Twerl
 
+[![Build Status](https://travis-ci.org/lucaspiller/twerl.png)](https://travis-ci.org/lucaspiller/twerl)
+
 An Erlang client for the Twitter Streaming API.
 
 ## Goals

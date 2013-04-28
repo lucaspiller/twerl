@@ -11,10 +11,12 @@
           start_link/0,
           start_link/1,
           stop/1,
-          start_stream/1
+          start_stream/1,
+          status/1
         ]).
 
 -record(state, {
+        status = disconnected :: atom(),
         headers = [] :: list(),
         params = "" :: string(),
         callback :: term(),
@@ -36,6 +38,9 @@ stop(ServerRef) ->
 
 start_stream(ServerRef) ->
     gen_server:call(ServerRef, start_stream).
+
+status(ServerRef) ->
+    gen_server:call(ServerRef, status).
 
 %%====================================================================
 %% gen_server callbacks
@@ -67,12 +72,15 @@ handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
     case Pid of
         undefined ->
             % not started, start client
-            NewPid = spawn(client_connect(State));
+            NewPid = spawn_link(client_connect(State));
         _ ->
             % alrady started, ignore
             NewPid = Pid
     end,
-    {reply, ok, State#state{ client_pid = NewPid }};
+    {reply, ok, State#state{ client_pid = NewPid, status = connected }};
+
+handle_call(status, _From, State = #state{status = Status}) ->
+    {reply, Status, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -92,8 +100,21 @@ handle_cast(_Msg, State) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(Info, State) ->
+    case Info of
+        {client_exit, unauthorised} ->
+            Pid = undefined,
+            Status = {error, unauthorised};
+        {client_exit, disconnected} ->
+            % TODO reconnect
+            Pid = undefined,
+            Status = disconnected;
+        {client_exit, Error} ->
+            % TODO maybe try reconnecting?
+            Pid = undefined,
+            Status = {error, Error}
+    end,
+    {noreply, State#state{status = Status, client_pid = Pid}}.
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -125,6 +146,17 @@ client_connect(#state{headers = Headers, params = Params, callback = StateCallba
             Callback = StateCallback
     end,
     Url = stream_client_util:filter_url(),
+    Parent = self(),
     fun() ->
-        stream_client:connect(Url, Headers, Params, Callback)
+        case stream_client:connect(Url, Headers, Params, Callback) of
+            {error, unauthorised} ->
+                % Didn't connect, unauthorised
+                Parent ! {client_exit, unauthorised};
+            {ok, _Pid} ->
+                % Connection closed normally
+                Parent ! {client_exit, disconnected};
+            {error, Error} ->
+                % Connection closed due to error
+                Parent ! {client_exit, Error}
+        end
     end.

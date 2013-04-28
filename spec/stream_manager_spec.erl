@@ -19,7 +19,8 @@ spec() ->
 
         %% manager setup
         before_each(fun() ->
-            {ok, _} = stream_manager:start_link(test_stream_manager)
+            {ok, _} = stream_manager:start_link(test_stream_manager),
+            ?assertEqual(disconnected, stream_manager:status(test_stream_manager))
         end),
 
         after_each(fun() ->
@@ -33,45 +34,72 @@ spec() ->
                 meck:expect(stream_client, connect,
                     % TODO check correct params are passed
                     fun(_, _, _, _) ->
-                        Parent ! {self(), started}
+                        Parent ! {self(), started},
+                        receive _ -> {ok, self()} end
                     end
                 ),
 
                 ok = stream_manager:start_stream(test_stream_manager),
+                ?assertEqual(connected, stream_manager:status(test_stream_manager)),
 
-                % starting the client happens async
+                % starting the client happens async, we need to wait for it
+                % to return to check it was called (meck thing)
                 receive
-                    {_, started} ->
-                        ok
+                    {Child, started} ->
+                        Child ! {shutdown}
                 after 100 ->
                         ?assert(timeout)
                 end,
 
-                [{_, {stream_client, connect, _}, _}] = meck:history(stream_client)
+                meck:wait(stream_client, connect, '_', 100)
             end),
 
             it("doesn't start a second client if there is one running", fun() ->
                 Parent = self(),
 
                 meck:expect(stream_client, connect,
-                    % TODO check correct params are passed
                     fun(_, _, _, _) ->
-                        Parent ! {self(), started}
+                        Parent ! {self(), started},
+                        receive _ -> {ok, self()} end
                     end
                 ),
 
                 ok = stream_manager:start_stream(test_stream_manager),
                 ok = stream_manager:start_stream(test_stream_manager),
+                ?assertEqual(connected, stream_manager:status(test_stream_manager)),
 
-                % starting the client happens async
+                % starting the client happens async, we need to wait for it
+                % to return to check it was called (meck thing)
                 receive
-                    {_, started} ->
-                        ok
+                    {Child, started} ->
+                        Child ! {shutdown}
                 after 100 ->
                         ?assert(timeout)
                 end,
 
-                [{_, {stream_client, connect, _}, _}] = meck:history(stream_client)
+                meck:wait(stream_client, connect, '_', 100)
+            end)
+        end),
+
+        describe("client errors", fun() ->
+            it("handles unauthorised error", fun() ->
+                meck:expect(stream_client, connect,
+                    fun(_, _, _, _) -> {error, unauthorised} end
+                ),
+
+                stream_manager:start_stream(test_stream_manager),
+                meck:wait(stream_client, connect, '_', 100),
+                ?assertEqual({error, unauthorised}, stream_manager:status(test_stream_manager))
+            end),
+
+            it("handles http errors", fun() ->
+                meck:expect(stream_client, connect,
+                    fun(_, _, _, _) -> {error, {http_error, something_went_wrong}} end
+                ),
+
+                stream_manager:start_stream(test_stream_manager),
+                meck:wait(stream_client, connect, '_', 100),
+                ?assertEqual({error, {http_error, something_went_wrong}}, stream_manager:status(test_stream_manager))
             end)
         end)
     end).

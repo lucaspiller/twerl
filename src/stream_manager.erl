@@ -10,10 +10,16 @@
 -export([
           start_link/0,
           start_link/1,
-          stop/1
+          stop/1,
+          start_stream/1
         ]).
 
--record(state, {}).
+-record(state, {
+        headers = [] :: list(),
+        params = "" :: string(),
+        callback :: term(),
+        client_pid :: pid()
+    }).
 
 %%====================================================================
 %% api callbacks
@@ -27,6 +33,9 @@ start_link(GenServerName) ->
 
 stop(ServerRef) ->
     gen_server:call(ServerRef, stop).
+
+start_stream(ServerRef) ->
+    gen_server:call(ServerRef, start_stream).
 
 %%====================================================================
 %% gen_server callbacks
@@ -53,6 +62,17 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call(stop, _From, State) ->
     {stop, normal, stopped, State};
+
+handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
+    case Pid of
+        undefined ->
+            % not started, start client
+            NewPid = spawn(client_connect(State));
+        _ ->
+            % alrady started, ignore
+            NewPid = Pid
+    end,
+    {reply, ok, State#state{ client_pid = NewPid }};
 
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
@@ -95,3 +115,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+-spec client_connect(record()) -> pid().
+client_connect(#state{headers = Headers, params = Params, callback = StateCallback}) ->
+    % Callback can be undefined, other options have defaults
+    case StateCallback of
+        undefined ->
+            Callback = fun(_) -> ok end;
+        _ ->
+            Callback = StateCallback
+    end,
+    Url = stream_client_util:filter_url(),
+    fun() ->
+        stream_client:connect(Url, Headers, Params, Callback)
+    end.

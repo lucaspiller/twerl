@@ -15,6 +15,7 @@
           stop_stream/1,
           set_params/2,
           set_callback/2,
+          set_headers/2,
           status/1
         ]).
 
@@ -50,6 +51,9 @@ set_params(ServerRef, Params) ->
 
 set_callback(ServerRef, Callback) ->
     gen_server:call(ServerRef, {set_callback, Callback}).
+
+set_headers(ServerRef, Headers) ->
+    gen_server:call(ServerRef, {set_headers, Headers}).
 
 status(ServerRef) ->
     gen_server:call(ServerRef, status).
@@ -115,6 +119,25 @@ handle_call({set_params, Params}, _From, State = #state{client_pid = Pid, params
                     NewPid = client_connect(State#state{ params = Params })
             end,
             {reply, ok, State#state{ params = Params, client_pid = NewPid }}
+    end;
+
+handle_call({set_headers, Headers}, _From, State = #state{client_pid = Pid, headers = OldHeaders}) ->
+    case Headers of
+        OldHeaders ->
+            % same, don't do anything
+            {reply, ok, State};
+        _ ->
+            % different, change and see if we need to restart the client
+            case Pid of
+                undefined ->
+                    % not started, nothing to do
+                    NewPid = Pid;
+                _ ->
+                    % already started, restart
+                    ok = client_shutdown(State),
+                    NewPid = client_connect(State#state{ headers = Headers })
+            end,
+            {reply, ok, State#state{ headers = Headers, client_pid = NewPid }}
     end;
 
 handle_call({set_callback, Callback}, _From, State) ->

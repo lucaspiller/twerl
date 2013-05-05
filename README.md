@@ -6,7 +6,7 @@ An Erlang client for the Twitter Streaming API.
 
 ## Goals
 
-* A lightweight client which can consume the Twitter Streaming API (DONE).
+* A lightweight client which can consume the Twitter Streaming API.
 * A client manager which allows you to change the search queries without losing any data (WIP).
 
 ## Usage
@@ -77,6 +77,8 @@ Stop the manager:
 
     stream_client_manager:stop(awesomeness).
 
+One of the goals is to be able to change the filter params without losing any data. This is still WIP as data could be lost or duplicated.
+
 ## Development
 
 Start an Erlang shell with reloader support:
@@ -95,5 +97,6 @@ Run tests (written in [espec](https://github.com/lucaspiller/espec)):
 
 * Fork the project.
 * Make your feature addition or bug fix.
+* Use the same indentation (4 spaces).
 * Add tests. Pull requests without tests will be ignored.
 * Send me a pull request. Bonus points for topic branches.

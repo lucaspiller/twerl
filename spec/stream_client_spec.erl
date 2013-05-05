@@ -166,7 +166,7 @@ spec() ->
                            end
                    end),
 
-               it("should return ok and the pid when the stream terminates", fun() ->
+               it("should return ok and the pid when the stream ends", fun() ->
                            Callback = fun(_Data) -> ok end,
                            RequestId = 1234,
 
@@ -180,7 +180,7 @@ spec() ->
 
                            receive
                                {Child, response, Response} ->
-                                   ?assertEqual({ok, RequestId}, Response)
+                                   ?assertEqual({ok, stream_end}, Response)
                            after 100 ->
                                    ?assert(timeout)
                            end
@@ -238,7 +238,7 @@ spec() ->
 
                            receive
                                {Child, response, Response} ->
-                                   ?assertEqual({ok, RequestId}, Response)
+                                   ?assertEqual({ok, stream_end}, Response)
                            after 100 ->
                                    ?assert(timeout_response)
                            end
@@ -306,7 +306,7 @@ spec() ->
                            end
                    end),
 
-               it("should return ok when the connection terminates", fun() ->
+               it("should return ok when the connection is terminated", fun() ->
                            Callback = fun(_Data) -> ok end,
                            RequestId = 1234,
 
@@ -320,7 +320,7 @@ spec() ->
 
                            receive
                                {Child, response, Response} ->
-                                   ?assertEqual({ok, RequestId}, Response)
+                                   ?assertEqual({ok, terminate}, Response)
                            after 100 ->
                                    ?assert(timeout)
                            end

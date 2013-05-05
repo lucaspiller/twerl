@@ -16,7 +16,8 @@ connect(Url, Headers, PostData, Callback) ->
             {error, {http_error, Reason}}
     end.
 
--spec handle_connection(term(), term()) -> ok | {error, term()}.
+% TODO maybe change {ok, stream_closed} to an error?
+-spec handle_connection(term(), term()) -> {ok, terminate} | {ok, stream_closed} | {error, term()}.
 handle_connection(Callback, RequestId) ->
     receive
         % stream opened
@@ -33,7 +34,7 @@ handle_connection(Callback, RequestId) ->
 
         % stream closed
         {http, {RequestId, stream_end, _Headers}} ->
-            {ok, RequestId};
+            {ok, stream_end};
 
         % connected but received error cod
         % 401 unauthorised - authentication credentials rejected
@@ -49,7 +50,7 @@ handle_connection(Callback, RequestId) ->
         {http, {RequestId, {error, Reason}}} ->
             {error, {http_error, Reason}};
 
-        % received terminate message
+        % message send by us to close the connection
         terminate ->
-            {ok, RequestId}
+            {ok, terminate}
     end.

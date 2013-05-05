@@ -19,10 +19,6 @@ You probably want to include it as a depedency in Rebar:
       ]
     }.
 
-### Manager
-
-WIP
-
 ### Client
 
 Generate auth headers:
@@ -43,6 +39,43 @@ Build a callback function:
 Start streaming:
 
     stream_client:connect(stream_client_util:filter_url(), Headers, Params, Callback).
+
+### Manager
+
+The function `stream_client:connect/4` blocks, and only returns once the stream ends. You can use the manager which is a simple gen\_server which wraps the functionality and adds some nice additions, such as allowing you to change filter params and the callback.
+
+Start the manager:
+
+    stream_client_manager:start_link(awesomeness).
+
+Set auth headers:
+
+    Headers = stream_client_util:generate_auth_headers(TwitterUsername, TwitterPassword),
+    stream_client_manager:set_headers(awesomeness, Headers).
+
+Set params:
+
+    {ok, Params} = stream_client_util:keywords_to_track(["erlang"]),
+    stream_client_manager:set_params(awesomeness, Params).
+
+Start streaming (you can set a callback after, and change it without losing data):
+
+    stream_client_manager:start_stream(awesomeness).
+
+Set a callback:
+
+    stream_client_manager:set_params(awesomeness, fun(Data) ->
+      Tweet = proplists:get_value(<<"text">>, Data),
+      io:format("Erlang <3: ~s~n", [Tweet])
+    end).
+
+Stop streaming:
+
+    stream_client_manager:stop_stream(awesomeness).
+
+Stop the manager:
+
+    stream_client_manager:stop(awesomeness).
 
 ## Development
 

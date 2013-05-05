@@ -134,26 +134,31 @@ handle_cast(_Msg, State) ->
 %%                                       {stop, Reason, State}
 %% Description: Handling all non call/cast messages
 %%--------------------------------------------------------------------
-handle_info(Info, State) ->
-    case Info of
+
+% we only care about messages from the current client, not old shutdown message
+handle_info({Pid, client_exit, Message}, State) when Pid == State#state.client_pid ->
+    case Message of
         % Handle messages from client process terminating
-        {client_exit, unauthorised} ->
-            Pid = undefined,
+        unauthorised ->
+            NewPid = undefined,
             Status = {error, unauthorised};
-        {client_exit, stream_end} ->
+        stream_end ->
             % TODO reconnect
-            Pid = undefined,
+            NewPid = undefined,
             Status = disconnected;
-        {client_exit, terminate} ->
+        terminate ->
             % We closed the connection
-            Pid = undefined,
+            NewPid = undefined,
             Status = disconnected;
-        {client_exit, Error} ->
+        Error ->
             % TODO maybe try reconnecting?
-            Pid = undefined,
+            NewPid = undefined,
             Status = {error, Error}
     end,
-    {noreply, State#state{status = Status, client_pid = Pid}}.
+    {noreply, State#state{status = Status, client_pid = NewPid}};
+
+handle_info(_Info, State) ->
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -190,16 +195,16 @@ client_connect(#state{headers = Headers, params = Params, callback = StateCallba
         case stream_client:connect(Url, Headers, Params, Callback) of
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
-                Parent ! {client_exit, unauthorised};
+                Parent ! {self(), client_exit, unauthorised};
             {ok, stream_end} ->
                 % Connection closed normally
-                Parent ! {client_exit, stream_end};
+                Parent ! {self(), client_exit, stream_end};
             {ok, terminate} ->
                 % Connection closed normally
-                Parent ! {client_exit, terminate};
+                Parent ! {self(), client_exit, terminate};
             {error, Error} ->
                 % Connection closed due to error
-                Parent ! {client_exit, Error}
+                Parent ! {self(), client_exit, Error}
         end
     end.
 

@@ -13,6 +13,7 @@
           stop/1,
           start_stream/1,
           stop_stream/1,
+          set_params/2,
           status/1
         ]).
 
@@ -42,6 +43,9 @@ start_stream(ServerRef) ->
 
 stop_stream(ServerRef) ->
     gen_server:call(ServerRef, stop_stream).
+
+set_params(ServerRef, Params) ->
+    gen_server:call(ServerRef, {set_params, Params}).
 
 status(ServerRef) ->
     gen_server:call(ServerRef, status).
@@ -90,6 +94,25 @@ handle_call(stop_stream, _From, State) ->
     % and set the pid / status there
     {reply, ok, State};
 
+handle_call({set_params, Params}, _From, State = #state{client_pid = Pid, params = OldParams}) ->
+    case Params of
+        OldParams ->
+            % same, don't do anything
+            {reply, ok, State};
+        _ ->
+            % different, change and see if we need to restart the client
+            case Pid of
+                undefined ->
+                    % not started, nothing to do
+                    NewPid = Pid;
+                _ ->
+                    % already started, restart
+                    ok = client_shutdown(State),
+                    NewPid = spawn_link(client_connect(State#state{ params = Params }))
+            end,
+            {reply, ok, State#state{ params = Params, client_pid = NewPid }}
+    end;
+
 handle_call(status, _From, State = #state{status = Status}) ->
     {reply, Status, State};
 
@@ -113,6 +136,7 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(Info, State) ->
     case Info of
+        % Handle messages from client process terminating
         {client_exit, unauthorised} ->
             Pid = undefined,
             Status = {error, unauthorised};

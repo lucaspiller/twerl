@@ -137,5 +137,66 @@ spec() ->
                 % check the child process is no longer alive
                 ?assertEqual(is_process_alive(ChildPid), false)
             end)
+        end),
+
+        describe("#set_params", fun() ->
+            it("sets the params to track", fun() ->
+                Params = "params=true",
+
+                meck:expect(stream_client, connect,
+                    fun(_, _, _, _) -> {ok, terminate} end
+                ),
+
+                stream_manager:set_params(test_stream_manager, Params),
+                stream_manager:start_stream(test_stream_manager),
+
+                meck:wait(stream_client, connect, ['_', '_', Params, '_'], 100)
+            end),
+
+            it("restarts the client if connected", fun() ->
+                Params1 = "params=1",
+                stream_manager:set_params(test_stream_manager, Params1),
+
+                Parent = self(),
+
+                meck:expect(stream_client, connect,
+                    fun(_, _, _, _) ->
+                        Parent ! {self(), started},
+                        receive _ -> {ok, terminate} end
+                    end
+                ),
+
+                ok = stream_manager:start_stream(test_stream_manager),
+
+                % wait for child 1 to start, we only need this to get the pid
+                % at this point
+                Child1 = receive
+                             {Child1Pid, started} ->
+                                 Child1Pid
+                         after 100 ->
+                             ?assert(timeout)
+                         end,
+
+                Params2 = "params=2",
+                stream_manager:set_params(test_stream_manager, Params2),
+
+                % child 1 will be terminated by the manager, and this call will
+                % return so we can wait for it through meck
+                meck:wait(stream_client, connect, ['_', '_', Params1, '_'], 100),
+
+                % starting the client happens async, we need to wait for it
+                % to return to check it was called (meck thing)
+                Child2 = receive
+                            {Child2Pid, started} ->
+                                Child2Pid ! {shutdown}
+                        after 100 ->
+                                ?assert(timeout)
+                        end,
+
+                meck:wait(stream_client, connect, ['_', '_', Params2, '_'], 100),
+
+                % check two seperate processes were started
+                ?assertNotEqual(Child1, Child2)
+            end)
         end)
     end).

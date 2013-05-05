@@ -105,8 +105,12 @@ handle_info(Info, State) ->
         {client_exit, unauthorised} ->
             Pid = undefined,
             Status = {error, unauthorised};
-        {client_exit, disconnected} ->
+        {client_exit, stream_end} ->
             % TODO reconnect
+            Pid = undefined,
+            Status = disconnected;
+        {client_exit, terminate} ->
+            % We closed the connection
             Pid = undefined,
             Status = disconnected;
         {client_exit, Error} ->
@@ -152,9 +156,12 @@ client_connect(#state{headers = Headers, params = Params, callback = StateCallba
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
                 Parent ! {client_exit, unauthorised};
-            {ok, _Pid} ->
+            {ok, stream_end} ->
                 % Connection closed normally
-                Parent ! {client_exit, disconnected};
+                Parent ! {client_exit, stream_end};
+            {ok, terminate} ->
+                % Connection closed normally
+                Parent ! {client_exit, terminate};
             {error, Error} ->
                 % Connection closed due to error
                 Parent ! {client_exit, Error}

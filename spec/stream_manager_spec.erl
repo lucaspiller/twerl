@@ -35,7 +35,7 @@ spec() ->
                     % TODO check correct params are passed
                     fun(_, _, _, _) ->
                         Parent ! {self(), started},
-                        receive _ -> {ok, self()} end
+                        receive _ -> {ok, terminate} end
                     end
                 ),
 
@@ -60,7 +60,7 @@ spec() ->
                 meck:expect(stream_client, connect,
                     fun(_, _, _, _) ->
                         Parent ! {self(), started},
-                        receive _ -> {ok, self()} end
+                        receive _ -> {ok, terminate} end
                     end
                 ),
 

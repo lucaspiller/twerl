@@ -14,6 +14,7 @@
           start_stream/1,
           stop_stream/1,
           set_params/2,
+          set_callback/2,
           status/1
         ]).
 
@@ -46,6 +47,9 @@ stop_stream(ServerRef) ->
 
 set_params(ServerRef, Params) ->
     gen_server:call(ServerRef, {set_params, Params}).
+
+set_callback(ServerRef, Callback) ->
+    gen_server:call(ServerRef, {set_callback, Callback}).
 
 status(ServerRef) ->
     gen_server:call(ServerRef, status).
@@ -81,7 +85,7 @@ handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
     case Pid of
         undefined ->
             % not started, start client
-            NewPid = spawn_link(client_connect(State));
+            NewPid = client_connect(State);
         _ ->
             % alrady started, ignore
             NewPid = Pid
@@ -108,10 +112,13 @@ handle_call({set_params, Params}, _From, State = #state{client_pid = Pid, params
                 _ ->
                     % already started, restart
                     ok = client_shutdown(State),
-                    NewPid = spawn_link(client_connect(State#state{ params = Params }))
+                    NewPid = client_connect(State#state{ params = Params })
             end,
             {reply, ok, State#state{ params = Params, client_pid = NewPid }}
     end;
+
+handle_call({set_callback, Callback}, _From, State) ->
+    {reply, ok, State#state{ callback = Callback }};
 
 handle_call(status, _From, State = #state{status = Status}) ->
     {reply, Status, State};
@@ -125,6 +132,17 @@ handle_call(_Request, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
+handle_cast({client_data, Data}, State = #state{ callback = Callback }) ->
+    case Callback of
+        undefined ->
+            % no callback set, ignore data
+            ok;
+        _ ->
+            % callback set, call with data
+            spawn(fun() -> Callback(Data) end)
+    end,
+    {noreply, State};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -181,17 +199,18 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 -spec client_connect(record()) -> pid().
-client_connect(#state{headers = Headers, params = Params, callback = StateCallback}) ->
-    % Callback can be undefined, other options have defaults
-    case StateCallback of
-        undefined ->
-            Callback = fun(_) -> ok end;
-        _ ->
-            Callback = StateCallback
-    end,
-    Url = stream_client_util:filter_url(),
+client_connect(#state{headers = Headers, params = Params}) ->
     Parent = self(),
-    fun() ->
+
+    % We don't use the callback from the state, as we want to be able to change
+    % it without restarting the client. As such we call back into the manager
+    % which deals with the data as it sees fit
+    Callback = fun(Data) ->
+        gen_server:cast(Parent, {client_data, Data})
+    end,
+
+    Url = stream_client_util:filter_url(),
+    spawn_link(fun() ->
         case stream_client:connect(Url, Headers, Params, Callback) of
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
@@ -206,7 +225,7 @@ client_connect(#state{headers = Headers, params = Params, callback = StateCallba
                 % Connection closed due to error
                 Parent ! {self(), client_exit, Error}
         end
-    end.
+    end).
 
 -spec client_shutdown(record()) -> ok.
 client_shutdown(#state{client_pid = Pid}) ->

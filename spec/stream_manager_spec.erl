@@ -195,5 +195,101 @@ spec() ->
                 % check two seperate processes were started
                 ?assertNotEqual(Child1, Child2)
             end)
+        end),
+
+        describe("#set_callback", fun() ->
+            it("sets the callback to call with data", fun() ->
+                Parent = self(),
+
+                HandleConnection = fun(Self, Callback) ->
+                        receive
+                            {data, Data} ->
+                                Callback(Data),
+                                Parent ! {self(), callback},
+                                Self(Self, Callback);
+                            _ ->
+                                {ok, terminate}
+                        end
+                end,
+
+                meck:expect(stream_client, connect,
+                    fun(_, _, _, Callback) ->
+                        Parent ! {self(), started},
+                        HandleConnection(HandleConnection, Callback)
+                    end
+                ),
+
+                ok = stream_manager:start_stream(test_stream_manager),
+
+                % wait for child to start
+                Child = receive
+                             {ChildPid, started} ->
+                                 ChildPid
+                         after 100 ->
+                             ?assert(timeout)
+                         end,
+
+                % send some data
+                Child ! {data, data1},
+
+                % wait for callback to be called
+                receive
+                    {Child, callback} ->
+                        ok
+                after 100 ->
+                    ?assert(timeout)
+                end,
+
+                Callback1 = fun(Data) ->
+                    Parent ! {callback1, Data}
+                end,
+
+                Callback2 = fun(Data) ->
+                    Parent ! {callback2, Data}
+                end,
+
+                % set a callback
+                stream_manager:set_callback(test_stream_manager, Callback1),
+
+                % send some more data
+                Child ! {data, data2},
+
+                % wait for callback to be called
+                receive
+                    {Child, callback} ->
+                        ok
+                after 100 ->
+                    ?assert(timeout)
+                end,
+
+                % set another callback
+                stream_manager:set_callback(test_stream_manager, Callback2),
+
+                % send some more data
+                Child ! {data, data3},
+
+                % wait for callback to be called
+                receive
+                    {Child, callback} ->
+                        ok
+                after 100 ->
+                    ?assert(timeout)
+                end,
+
+                % check callbacks called correctly
+                receive
+                    {callback1, data2} ->
+                        ok
+                after 100 ->
+                    ?assert(timeout)
+                end,
+
+                receive
+                    {callback2, data3} ->
+                        ok
+                after 100 ->
+                    ?assert(timeout)
+                end
+            end)
         end)
     end).

@@ -101,5 +101,41 @@ spec() ->
                 meck:wait(stream_client, connect, '_', 100),
                 ?assertEqual({error, {http_error, something_went_wrong}}, stream_manager:status(test_stream_manager))
             end)
+        end),
+
+        describe("#stop_stream", fun() ->
+            it("shuts down the client", fun() ->
+                Parent = self(),
+
+                meck:expect(stream_client, connect,
+                    % TODO check correct params are passed
+                    fun(_, _, _, _) ->
+                        Parent ! {self(), started},
+                        receive _ -> {ok, terminate} end
+                    end
+                ),
+
+                ok = stream_manager:start_stream(test_stream_manager),
+                ?assertEqual(connected, stream_manager:status(test_stream_manager)),
+
+                % starting the client happens async, wait for it to start
+                % before terminating it
+                ChildPid = receive
+                               {Child, started} ->
+                                   Child
+                           after 100 ->
+                                   ?assert(timeout)
+                           end,
+
+                ok = stream_manager:stop_stream(test_stream_manager),
+
+                % wait for child process to end
+                meck:wait(stream_client, connect, '_', 100),
+
+                ?assertEqual(disconnected, stream_manager:status(test_stream_manager)),
+
+                % check the child process is no longer alive
+                ?assertEqual(is_process_alive(ChildPid), false)
+            end)
         end)
     end).

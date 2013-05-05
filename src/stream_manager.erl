@@ -12,6 +12,7 @@
           start_link/1,
           stop/1,
           start_stream/1,
+          stop_stream/1,
           status/1
         ]).
 
@@ -38,6 +39,9 @@ stop(ServerRef) ->
 
 start_stream(ServerRef) ->
     gen_server:call(ServerRef, start_stream).
+
+stop_stream(ServerRef) ->
+    gen_server:call(ServerRef, stop_stream).
 
 status(ServerRef) ->
     gen_server:call(ServerRef, status).
@@ -66,6 +70,7 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call(stop, _From, State) ->
+    ok = client_shutdown(State),
     {stop, normal, stopped, State};
 
 handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
@@ -78,6 +83,12 @@ handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
             NewPid = Pid
     end,
     {reply, ok, State#state{ client_pid = NewPid, status = connected }};
+
+handle_call(stop_stream, _From, State) ->
+    ok = client_shutdown(State),
+    % we leave the state as is, we will get a message when the client ends
+    % and set the pid / status there
+    {reply, ok, State};
 
 handle_call(status, _From, State = #state{status = Status}) ->
     {reply, Status, State};
@@ -166,4 +177,16 @@ client_connect(#state{headers = Headers, params = Params, callback = StateCallba
                 % Connection closed due to error
                 Parent ! {client_exit, Error}
         end
+    end.
+
+-spec client_shutdown(record()) -> ok.
+client_shutdown(#state{client_pid = Pid}) ->
+    case Pid of
+        undefined ->
+            % not started, nothing to do
+            ok;
+        _ ->
+            % terminate the client
+            Pid ! terminate,
+            ok
     end.

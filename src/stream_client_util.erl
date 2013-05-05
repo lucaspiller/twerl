@@ -56,5 +56,5 @@ filter_url() ->
 
 -spec decode(binary()) -> list().
 decode(Data) ->
-    {struct, Decoded} = mochijson2:decode(Data),
+    {Decoded} = jiffy:decode(Data),
     Decoded.

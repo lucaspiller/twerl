@@ -154,9 +154,6 @@ spec() ->
             end),
 
             it("restarts the client if connected", fun() ->
-                Params1 = "params=1",
-                stream_manager:set_params(test_stream_manager, Params1),
-
                 Parent = self(),
 
                 meck:expect(stream_client, connect,
@@ -177,12 +174,12 @@ spec() ->
                              ?assert(timeout)
                          end,
 
-                Params2 = "params=2",
-                stream_manager:set_params(test_stream_manager, Params2),
+                NewParams = "params=true",
+                stream_manager:set_params(test_stream_manager, NewParams),
 
                 % child 1 will be terminated by the manager, and this call will
                 % return so we can wait for it through meck
-                meck:wait(stream_client, connect, ['_', '_', Params1, '_'], 100),
+                meck:wait(stream_client, connect, ['_', '_', "", '_'], 100),
 
                 % starting the client happens async, we need to wait for it
                 % to return to check it was called (meck thing)
@@ -193,7 +190,7 @@ spec() ->
                                 ?assert(timeout)
                         end,
 
-                meck:wait(stream_client, connect, ['_', '_', Params2, '_'], 100),
+                meck:wait(stream_client, connect, ['_', '_', NewParams, '_'], 100),
 
                 % check two seperate processes were started
                 ?assertNotEqual(Child1, Child2)

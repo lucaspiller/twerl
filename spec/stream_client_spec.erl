@@ -4,6 +4,7 @@
 -define(POST_ENDPOINT, {post, "http://localhost:4567/"}).
 -define(GET_ENDPOINT, {get, "http://localhost:4567/"}).
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
+-define(TEST_AUTH, {basic, ["", ""]}).
 
 spec() ->
    describe("stream client", fun() ->
@@ -25,7 +26,7 @@ spec() ->
                            it("should return http errors", fun() ->
                                        meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
-                                       Result = stream_client:connect(?POST_ENDPOINT, [], "", self()),
+                                       Result = stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self()),
                                        Expected = {error, {http_error, something_went_wrong}},
 
                                        ?assertEqual(Expected, Result)
@@ -39,7 +40,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct url", fun() ->
@@ -52,21 +53,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
-                               end),
-
-                           it("should use the correct headers", fun() ->
-                                       Headers = [a, b, c],
-
-                                       meck:expect(httpc, request,
-                                           fun(_, Args, _, _) ->
-                                                   {_, PassedHeaders, _, _} = Args,
-                                                   ?assertEqual(Headers, PassedHeaders),
-                                                   {error, no_continue} % what the client expects
-                                           end
-                                       ),
-
-                                       stream_client:connect(?POST_ENDPOINT, Headers, "", self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct content type", fun() ->
@@ -78,7 +65,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct params", fun() ->
@@ -92,7 +79,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], PostData, self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, PostData, self())
 
                                end),
 
@@ -105,7 +92,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct http client arguments for streaming", fun() ->
@@ -116,7 +103,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end)
                        end),
 
@@ -124,7 +111,7 @@ spec() ->
                            it("should return http errors", fun() ->
                                        meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
-                                       Result = stream_client:connect(?GET_ENDPOINT, [], "", self()),
+                                       Result = stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self()),
                                        Expected = {error, {http_error, something_went_wrong}},
 
                                        ?assertEqual(Expected, Result)
@@ -138,7 +125,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct url", fun() ->
@@ -151,21 +138,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
-                               end),
-
-                           it("should use the correct headers", fun() ->
-                                       Headers = [a, b, c],
-
-                                       meck:expect(httpc, request,
-                                           fun(_, Args, _, _) ->
-                                                   {_, PassedHeaders} = Args,
-                                                   ?assertEqual(Headers, PassedHeaders),
-                                                   {error, no_continue} % what the client expects
-                                           end
-                                       ),
-
-                                       stream_client:connect(?GET_ENDPOINT, Headers, "", self())
+                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct params", fun() ->
@@ -180,7 +153,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, [], PostData, self())
+                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, PostData, self())
 
                                end),
 
@@ -193,7 +166,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct http client arguments for streaming", fun() ->
@@ -204,7 +177,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end)
                         end)
                    end),
@@ -234,7 +207,7 @@ spec() ->
                                                {ok, test}
                                        end),
 
-                                   stream_client:connect(?POST_ENDPOINT, [], "", Callback)
+                                   stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", Callback)
                            end)
                    end)
            end),

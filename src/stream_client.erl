@@ -7,7 +7,8 @@
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
 
 -spec connect(string(), list(), string(), fun()) -> ok | {error, reason}.
-connect({post, Url}, Headers, Params, Callback) ->
+connect({post, Url}, Auth, Params, Callback) ->
+    Headers = stream_client_util:headers_for_auth(Auth, {post, Url}, Params),
     case catch httpc:request(post, {Url, Headers, ?CONTENT_TYPE, Params}, [], [{sync, false}, {stream, self}]) of
         {ok, RequestId} ->
             ?MODULE:handle_connection(Callback, RequestId);
@@ -16,7 +17,8 @@ connect({post, Url}, Headers, Params, Callback) ->
             {error, {http_error, Reason}}
     end;
 
-connect({get, BaseUrl}, Headers, Params, Callback) ->
+connect({get, BaseUrl}, Auth, Params, Callback) ->
+    Headers = stream_client_util:headers_for_auth(Auth, {get, BaseUrl}, Params),
     Url = case Params of
               "" ->
                   BaseUrl;

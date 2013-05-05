@@ -1,5 +1,6 @@
 -module(stream_client_util).
 -export([
+          headers_for_auth/3,
           generate_headers/0,
           generate_auth_headers/2,
           generate_auth_headers/3,
@@ -8,6 +9,11 @@
           filter_url/0,
           decode/1
         ]).
+
+% TODO extend for oauth
+-spec headers_for_auth(term(), term(), list()) -> list().
+headers_for_auth({basic, [User, Pass]}, _Endpoint, _Params) ->
+    generate_auth_headers(User, Pass).
 
 -spec generate_headers() -> list().
 generate_headers() ->

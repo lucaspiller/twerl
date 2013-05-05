@@ -197,18 +197,18 @@ spec() ->
             end)
         end),
 
-        describe("#set_headers", fun() ->
-            it("sets the headers", fun() ->
-                Headers = [{"X-Awesome", "true"}],
+        describe("#set_auth", fun() ->
+            it("sets the auth", fun() ->
+                Auth = {basic, ["User1", "Pass1"]},
 
                 meck:expect(stream_client, connect,
                     fun(_, _, _, _) -> {ok, terminate} end
                 ),
 
-                stream_manager:set_headers(test_stream_manager, Headers),
+                stream_manager:set_auth(test_stream_manager, Auth),
                 stream_manager:start_stream(test_stream_manager),
 
-                meck:wait(stream_client, connect, ['_', Headers, '_', '_'], 100)
+                meck:wait(stream_client, connect, ['_', Auth, '_', '_'], 100)
             end),
 
             it("restarts the client if connected", fun() ->
@@ -232,12 +232,13 @@ spec() ->
                              ?assert(timeout)
                          end,
 
-                NewHeaders = [{"X-Awesome", "true"}],
-                stream_manager:set_headers(test_stream_manager, NewHeaders),
+                NewAuth = {basic, ["User2", "Pass2"]},
+                stream_manager:set_auth(test_stream_manager, NewAuth),
 
                 % child 1 will be terminated by the manager, and this call will
                 % return so we can wait for it through meck
-                meck:wait(stream_client, connect, ['_', [], '_', '_'], 100),
+                OldAuth = {basic, ["", ""]},
+                meck:wait(stream_client, connect, ['_', OldAuth, '_', '_'], 100),
 
                 % starting the client happens async, we need to wait for it
                 % to return to check it was called (meck thing)
@@ -248,7 +249,7 @@ spec() ->
                                 ?assert(timeout)
                         end,
 
-                meck:wait(stream_client, connect, ['_', NewHeaders, '_', '_'], 100),
+                meck:wait(stream_client, connect, ['_', NewAuth, '_', '_'], 100),
 
                 % check two seperate processes were started
                 ?assertNotEqual(Child1, Child2)

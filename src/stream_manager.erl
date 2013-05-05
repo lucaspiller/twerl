@@ -15,13 +15,13 @@
           stop_stream/1,
           set_params/2,
           set_callback/2,
-          set_headers/2,
+          set_auth/2,
           status/1
         ]).
 
 -record(state, {
         status = disconnected :: atom(),
-        headers = [] :: list(),
+        auth = {basic, ["", ""]} :: list(),
         params = "" :: string(),
         callback :: term(),
         client_pid :: pid()
@@ -52,8 +52,8 @@ set_params(ServerRef, Params) ->
 set_callback(ServerRef, Callback) ->
     gen_server:call(ServerRef, {set_callback, Callback}).
 
-set_headers(ServerRef, Headers) ->
-    gen_server:call(ServerRef, {set_headers, Headers}).
+set_auth(ServerRef, Auth) ->
+    gen_server:call(ServerRef, {set_auth, Auth}).
 
 status(ServerRef) ->
     gen_server:call(ServerRef, status).
@@ -121,9 +121,9 @@ handle_call({set_params, Params}, _From, State = #state{client_pid = Pid, params
             {reply, ok, State#state{ params = Params, client_pid = NewPid }}
     end;
 
-handle_call({set_headers, Headers}, _From, State = #state{client_pid = Pid, headers = OldHeaders}) ->
-    case Headers of
-        OldHeaders ->
+handle_call({set_auth, Auth}, _From, State = #state{client_pid = Pid, auth = OldAuth}) ->
+    case Auth of
+        OldAuth ->
             % same, don't do anything
             {reply, ok, State};
         _ ->
@@ -135,9 +135,9 @@ handle_call({set_headers, Headers}, _From, State = #state{client_pid = Pid, head
                 _ ->
                     % already started, restart
                     ok = client_shutdown(State),
-                    NewPid = client_connect(State#state{ headers = Headers })
+                    NewPid = client_connect(State#state{ auth = Auth })
             end,
-            {reply, ok, State#state{ headers = Headers, client_pid = NewPid }}
+            {reply, ok, State#state{ auth = Auth, client_pid = NewPid }}
     end;
 
 handle_call({set_callback, Callback}, _From, State) ->
@@ -222,7 +222,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 -spec client_connect(record()) -> pid().
-client_connect(#state{headers = Headers, params = Params}) ->
+client_connect(#state{auth = Auth, params = Params}) ->
     Parent = self(),
 
     % We don't use the callback from the state, as we want to be able to change
@@ -234,7 +234,7 @@ client_connect(#state{headers = Headers, params = Params}) ->
 
     Endpoint = {post, stream_client_util:filter_url()},
     spawn_link(fun() ->
-        case stream_client:connect(Endpoint, Headers, Params, Callback) of
+        case stream_client:connect(Endpoint, Auth, Params, Callback) of
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
                 Parent ! {self(), client_exit, unauthorised};

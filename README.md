@@ -98,5 +98,15 @@ Run tests (written in [espec](https://github.com/lucaspiller/espec)):
 * Fork the project.
 * Make your feature addition or bug fix.
 * Use the same indentation (4 spaces).
+* Add a line to `CHANGELOG.md` describing your change.
 * Add tests. Pull requests without tests will be ignored.
 * Send me a pull request. Bonus points for topic branches.
+
+## License
+
+MIT License. See `LICENSE.md` for details.
+
+## Copyright
+
+Copyright (c) 2011-2013 Luca Spiller.
+

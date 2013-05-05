@@ -1,7 +1,8 @@
 -module(stream_client_spec).
 -include("espec.hrl").
 
--define(TEST_URL, "http://localhost:4567/").
+-define(POST_ENDPOINT, {post, "http://localhost:4567/"}).
+-define(GET_ENDPOINT, {get, "http://localhost:4567/"}).
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
 
 spec() ->
@@ -20,101 +21,192 @@ spec() ->
                                    ok = meck:unload(httpc)
                            end),
 
-                       it("should return http errors", fun() ->
-                                   meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
+                       describe("POST endpoint", fun() ->
+                           it("should return http errors", fun() ->
+                                       meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
-                                   Result = stream_client:connect(?TEST_URL, [], "", self()),
-                                   Expected = {error, {http_error, something_went_wrong}},
+                                       Result = stream_client:connect(?POST_ENDPOINT, [], "", self()),
+                                       Expected = {error, {http_error, something_went_wrong}},
 
-                                   ?assertEqual(Expected, Result)
-                           end),
+                                       ?assertEqual(Expected, Result)
+                               end),
 
-                       it("should use http post method", fun() ->
-                                   meck:expect(httpc, request,
-                                       fun(Method, _, _, _) ->
-                                               ?assertEqual(post, Method),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                           it("should use http post method", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(Method, _, _, _) ->
+                                                   ?assertEqual(post, Method),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], "", self())
-                           end),
+                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                               end),
 
-                       it("should use the correct url", fun() ->
-                                   meck:expect(httpc, request,
-                                       fun(_, Args, _, _) ->
-                                               {Url, _, _, _} = Args,
-                                               ?assertEqual(?TEST_URL, Url),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                           it("should use the correct url", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {Url, _, _, _} = Args,
+                                                   {post, ExpectedUrl} = ?POST_ENDPOINT,
+                                                   ?assertEqual(ExpectedUrl, Url),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], "", self())
-                           end),
+                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                               end),
 
-                       it("should use the correct headers", fun() ->
-                                   Headers = [a, b, c],
+                           it("should use the correct headers", fun() ->
+                                       Headers = [a, b, c],
 
-                                   meck:expect(httpc, request,
-                                       fun(_, Args, _, _) ->
-                                               {_, PassedHeaders, _, _} = Args,
-                                               ?assertEqual(Headers, PassedHeaders),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {_, PassedHeaders, _, _} = Args,
+                                                   ?assertEqual(Headers, PassedHeaders),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, Headers, "", self())
-                           end),
+                                       stream_client:connect(?POST_ENDPOINT, Headers, "", self())
+                               end),
 
-                       it("should use the correct content type", fun() ->
-                                   meck:expect(httpc, request,
-                                       fun(_, Args, _, _) ->
-                                               {_, _, ContentType, _} = Args,
-                                               ?assertEqual(?CONTENT_TYPE, ContentType),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                           it("should use the correct content type", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {_, _, ContentType, _} = Args,
+                                                   ?assertEqual(?CONTENT_TYPE, ContentType),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], "", self())
-                           end),
+                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                               end),
 
-                       it("should use the correct post data", fun() ->
-                                   PostData = "test123",
+                           it("should use the correct params", fun() ->
+                                       PostData = "test123",
 
-                                   meck:expect(httpc, request,
-                                       fun(_, Args, _, _) ->
-                                               {_, _, _, PassedPostData} = Args,
-                                               ?assertEqual(PostData, PassedPostData),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {_, _, _, PassedPostData} = Args,
+                                                   ?assertEqual(PostData, PassedPostData),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], PostData, self())
+                                       stream_client:connect(?POST_ENDPOINT, [], PostData, self())
 
-                           end),
+                               end),
 
-                       % TODO check what this argument is actually for
-                       it("should use the correct other params", fun() ->
-                                   meck:expect(httpc, request,
-                                       fun(_, _, OtherParams, _) ->
-                                               ?assertEqual([], OtherParams),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                           % TODO check what this argument is actually for
+                           it("should use the correct other params", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, _, OtherParams, _) ->
+                                                   ?assertEqual([], OtherParams),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], "", self())
-                           end),
+                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                               end),
 
-                       it("should use the correct http client arguments for streaming", fun() ->
-                                   meck:expect(httpc, request,
-                                       fun(_, _, _, ClientArgs) ->
-                                               ?assertEqual([{sync, false}, {stream, self}], ClientArgs),
-                                               {error, no_continue} % what the client expects
-                                       end
-                                   ),
+                           it("should use the correct http client arguments for streaming", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, _, _, ClientArgs) ->
+                                                   ?assertEqual([{sync, false}, {stream, self}], ClientArgs),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
 
-                                   stream_client:connect(?TEST_URL, [], "", self())
-                           end)
+                                       stream_client:connect(?POST_ENDPOINT, [], "", self())
+                               end)
+                       end),
+
+                       describe("GET endpoint", fun() ->
+                           it("should return http errors", fun() ->
+                                       meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
+
+                                       Result = stream_client:connect(?GET_ENDPOINT, [], "", self()),
+                                       Expected = {error, {http_error, something_went_wrong}},
+
+                                       ?assertEqual(Expected, Result)
+                               end),
+
+                           it("should use http get method", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(Method, _, _, _) ->
+                                                   ?assertEqual(get, Method),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                               end),
+
+                           it("should use the correct url", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {Url, _} = Args,
+                                                   {get, ExpectedUrl} = ?GET_ENDPOINT,
+                                                   ?assertEqual(ExpectedUrl, Url),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                               end),
+
+                           it("should use the correct headers", fun() ->
+                                       Headers = [a, b, c],
+
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {_, PassedHeaders} = Args,
+                                                   ?assertEqual(Headers, PassedHeaders),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, Headers, "", self())
+                               end),
+
+                           it("should use the correct params", fun() ->
+                                       PostData = "test123",
+
+                                       meck:expect(httpc, request,
+                                           fun(_, Args, _, _) ->
+                                                   {Url, _} = Args,
+                                                   {get, ExpectedUrl} = ?GET_ENDPOINT,
+                                                   ?assertEqual(ExpectedUrl ++ "?" ++ PostData, Url),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, [], PostData, self())
+
+                               end),
+
+                           % TODO check what this argument is actually for
+                           it("should use the correct other params", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, _, OtherParams, _) ->
+                                                   ?assertEqual([], OtherParams),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                               end),
+
+                           it("should use the correct http client arguments for streaming", fun() ->
+                                       meck:expect(httpc, request,
+                                           fun(_, _, _, ClientArgs) ->
+                                                   ?assertEqual([{sync, false}, {stream, self}], ClientArgs),
+                                                   {error, no_continue} % what the client expects
+                                           end
+                                       ),
+
+                                       stream_client:connect(?GET_ENDPOINT, [], "", self())
+                               end)
+                        end)
                    end),
 
                describe("connection handler", fun() ->
@@ -142,7 +234,7 @@ spec() ->
                                                {ok, test}
                                        end),
 
-                                   stream_client:connect(?TEST_URL, [], "", Callback)
+                                   stream_client:connect(?POST_ENDPOINT, [], "", Callback)
                            end)
                    end)
            end),

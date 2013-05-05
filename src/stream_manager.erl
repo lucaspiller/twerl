@@ -232,9 +232,9 @@ client_connect(#state{headers = Headers, params = Params}) ->
         gen_server:cast(Parent, {client_data, Data})
     end,
 
-    Url = stream_client_util:filter_url(),
+    Endpoint = {post, stream_client_util:filter_url()},
     spawn_link(fun() ->
-        case stream_client:connect(Url, Headers, Params, Callback) of
+        case stream_client:connect(Endpoint, Headers, Params, Callback) of
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
                 Parent ! {self(), client_exit, unauthorised};

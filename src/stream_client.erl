@@ -7,8 +7,23 @@
 -define(CONTENT_TYPE, "application/x-www-form-urlencoded").
 
 -spec connect(string(), list(), string(), fun()) -> ok | {error, reason}.
-connect(Url, Headers, PostData, Callback) ->
-    case catch httpc:request(post, {Url, Headers, ?CONTENT_TYPE, PostData}, [], [{sync, false}, {stream, self}]) of
+connect({post, Url}, Headers, Params, Callback) ->
+    case catch httpc:request(post, {Url, Headers, ?CONTENT_TYPE, Params}, [], [{sync, false}, {stream, self}]) of
+        {ok, RequestId} ->
+            ?MODULE:handle_connection(Callback, RequestId);
+
+        {error, Reason} ->
+            {error, {http_error, Reason}}
+    end;
+
+connect({get, BaseUrl}, Headers, Params, Callback) ->
+    Url = case Params of
+              "" ->
+                  BaseUrl;
+              _ ->
+                  BaseUrl ++ "?" ++ Params
+          end,
+    case catch httpc:request(get, {Url, Headers}, [], [{sync, false}, {stream, self}]) of
         {ok, RequestId} ->
             ?MODULE:handle_connection(Callback, RequestId);
 

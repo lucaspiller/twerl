@@ -10,10 +10,12 @@
           decode/1
         ]).
 
-% TODO extend for oauth
--spec headers_for_auth(term(), term(), list()) -> list().
+-spec headers_for_auth(term(), term(), list()) -> list() | {list(), string()}.
 headers_for_auth({basic, [User, Pass]}, _Endpoint, _Params) ->
-    generate_auth_headers(User, Pass).
+    generate_auth_headers(User, Pass);
+
+headers_for_auth({oauth, [ConsumerKey, ConsumerSecret, TokenKey, TokenSecret]}, _Endpoint, _Params) ->
+    {[], oauth_params(ConsumerKey, ConsumerSecret, TokenKey, TokenSecret, _Endpoint, _Params)}.
 
 -spec generate_headers() -> list().
 generate_headers() ->
@@ -69,3 +71,11 @@ decode(Data) ->
             {Decoded} = jiffy:decode(Data),
             Decoded
     end.
+
+oauth_params(ConsumerKey, ConsumerSecret, TokenKey, TokenSecret, {Method, URL}, Params) ->
+    MethodStr = case Method of
+                    get -> "GET";
+                    post -> "POST" end,
+    Consumer = {ConsumerKey, ConsumerSecret, hmac_sha1},
+    SignedParams = oauth:sign(MethodStr, URL, Params, Consumer, TokenKey, TokenSecret),
+    oauth:uri_params_encode(SignedParams).

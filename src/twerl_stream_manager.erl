@@ -85,16 +85,16 @@ handle_call(stop, _From, State) ->
     ok = client_shutdown(State),
     {stop, normal, stopped, State};
 
-handle_call(start_stream, _From, State = #state{client_pid = Pid}) ->
-    case Pid of
-        undefined ->
-            % not started, start client
-            NewPid = client_connect(State);
-        _ ->
-            % alrady started, ignore
-            NewPid = Pid
-    end,
-    {reply, ok, State#state{ client_pid = NewPid, status = connected }};
+handle_call(start_stream, _From, State=#state{client_pid=Pid}) ->
+    NewPid = case Pid of
+                 undefined ->
+                     %% not started, start client
+                     client_connect(State);
+                 _ ->
+                     %% alrady started, ignore
+                     Pid
+             end,
+    {reply, ok, State#state{client_pid=NewPid, status=connected }};
 
 handle_call(stop_stream, _From, State) ->
     ok = client_shutdown(State),
@@ -102,43 +102,39 @@ handle_call(stop_stream, _From, State) ->
     % and set the pid / status there
     {reply, ok, State};
 
-handle_call({set_params, Params}, _From, State = #state{client_pid = Pid, params = OldParams}) ->
-    case Params of
-        OldParams ->
-            % same, don't do anything
-            {reply, ok, State};
-        _ ->
-            % different, change and see if we need to restart the client
-            case Pid of
-                undefined ->
-                    % not started, nothing to do
-                    NewPid = Pid;
-                _ ->
-                    % already started, restart
-                    ok = client_shutdown(State),
-                    NewPid = client_connect(State#state{ params = Params })
-            end,
-            {reply, ok, State#state{ params = Params, client_pid = NewPid }}
-    end;
+handle_call({set_params, OldParams}, _From, State=#state{params=OldParams}) ->
+    %% same, don't do anything
+    {reply, ok, State};
 
-handle_call({set_auth, Auth}, _From, State = #state{client_pid = Pid, auth = OldAuth}) ->
-    case Auth of
-        OldAuth ->
-            % same, don't do anything
-            {reply, ok, State};
-        _ ->
-            % different, change and see if we need to restart the client
-            case Pid of
-                undefined ->
+handle_call({set_params, Params}, _From, State = #state{client_pid=Pid}) ->
+    %% change and see if we need to restart the client
+    NewPid = case Pid of
+                 undefined ->
+                     %% not started, nothing to do
+                     undefined;
+                 _ ->
+                     %% already started, restart
+                     ok = client_shutdown(State),
+                     client_connect(State#state{ params = Params })
+             end,
+    {reply, ok, State#state{ params = Params, client_pid = NewPid }};
+
+handle_call({set_auth, OldAuth}, _From, State=#state{auth=OldAuth}) ->
+    %% same, don't do anything
+    {reply, ok, State};
+
+handle_call({set_auth, Auth}, _From, State = #state{client_pid = Pid}) ->
+    %% different, change and see if we need to restart the client
+    NewPid = case Pid of
+                 undefined ->
                     % not started, nothing to do
-                    NewPid = Pid;
+                    undefined;
                 _ ->
                     % already started, restart
                     ok = client_shutdown(State),
-                    NewPid = client_connect(State#state{ auth = Auth })
+                    client_connect(State#state{ auth = Auth })
             end,
-            {reply, ok, State#state{ auth = Auth, client_pid = NewPid }}
-    end;
+    {reply, ok, State#state{ auth = Auth, client_pid = NewPid }};
 
 handle_call({set_callback, Callback}, _From, State) ->
     {reply, ok, State#state{ callback = Callback }};
@@ -178,25 +174,21 @@ handle_cast(_Msg, State) ->
 
 % we only care about messages from the current client, not old shutdown message
 handle_info({Pid, client_exit, Message}, State) when Pid == State#state.client_pid ->
-    case Message of
-        % Handle messages from client process terminating
-        unauthorised ->
-            NewPid = undefined,
-            Status = {error, unauthorised};
-        stream_end ->
-            % TODO reconnect
-            NewPid = undefined,
-            Status = disconnected;
-        terminate ->
-            % We closed the connection
-            NewPid = undefined,
-            Status = disconnected;
-        Error ->
-            % TODO maybe try reconnecting?
-            NewPid = undefined,
-            Status = {error, Error}
-    end,
-    {noreply, State#state{status = Status, client_pid = NewPid}};
+    {NewPid, Status} = case Message of
+                           %% Handle messages from client process terminating
+                           unauthorised ->
+                               {undefined, {error, unauthorised}};
+                           stream_end ->
+                               %% TODO reconnect
+                               {undefined, disconnected};
+                           terminate ->
+                               %% We closed the connection
+                               {undefined, disconnected};
+                           Error ->
+                               %% TODO maybe try reconnecting?
+                               {undefined, {error, Error}}
+                       end,
+    {noreply, State#state{status=Status, client_pid=NewPid}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -251,13 +243,10 @@ client_connect(#state{auth = Auth, params = Params}) ->
     end).
 
 -spec client_shutdown(record()) -> ok.
-client_shutdown(#state{client_pid = Pid}) ->
-    case Pid of
-        undefined ->
-            % not started, nothing to do
-            ok;
-        _ ->
-            % terminate the client
-            Pid ! terminate,
-            ok
-    end.
+client_shutdown(#state{client_pid=undefined}) ->
+    %% not started, nothing to do
+    ok;
+client_shutdown(#state{client_pid=Pid}) ->
+    %% terminate the client
+    Pid ! terminate,
+    ok.

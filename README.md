@@ -4,6 +4,8 @@
 
 An Erlang client for the Twitter Streaming API.
 
+**Important notice:** As is this library isn't currently usable since [Twitter deprecated basic auth](https://dev.twitter.com/docs/streaming-apis/connecting). OAuth support is WIP, see the [oauth branch](https://github.com/lucaspiller/twerl/tree/oauth) and [issue](https://github.com/lucaspiller/twerl/issues/2) for further details.
+
 ## Goals
 
 * A lightweight client which can consume the Twitter Streaming API.

@@ -23,17 +23,16 @@ connect({post, Url}, Auth, Params, Callback) ->
     end;
 
 connect({get, BaseUrl}, Auth, Params, Callback) ->
-    Headers = twerl_util:headers_for_auth(Auth, {get, BaseUrl}, Params),
-    Url = case Params of
-              "" ->
-                  BaseUrl;
-              _ ->
-                  BaseUrl ++ "?" ++ Params
-          end,
+    {Headers, UrlParams} = case twerl_util:headers_for_auth(Auth, {get, BaseUrl}, Params) of
+                        L when is_list(L) ->
+                            {L, Params};
+                          {H, L2} ->
+                              {H, L2}
+                      end,
+    Url = BaseUrl ++ "?" ++ UrlParams,
     case catch httpc:request(get, {Url, Headers}, [], [{sync, false}, {stream, self}]) of
         {ok, RequestId} ->
             ?MODULE:handle_connection(Callback, RequestId);
-
         {error, Reason} ->
             {error, {http_error, Reason}}
     end.

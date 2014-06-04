@@ -1,4 +1,4 @@
--module(stream_client_spec).
+-module(twerl_stream_spec).
 -include("espec.hrl").
 
 -define(POST_ENDPOINT, {post, "http://localhost:4567/"}).
@@ -26,7 +26,7 @@ spec() ->
                            it("should return http errors", fun() ->
                                        meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
-                                       Result = stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self()),
+                                       Result = twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self()),
                                        Expected = {error, {http_error, something_went_wrong}},
 
                                        ?assertEqual(Expected, Result)
@@ -40,7 +40,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct url", fun() ->
@@ -53,7 +53,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct content type", fun() ->
@@ -65,7 +65,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct params", fun() ->
@@ -79,7 +79,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, PostData, self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, PostData, self())
 
                                end),
 
@@ -92,7 +92,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct http client arguments for streaming", fun() ->
@@ -103,7 +103,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", self())
                                end)
                        end),
 
@@ -111,7 +111,7 @@ spec() ->
                            it("should return http errors", fun() ->
                                        meck:expect(httpc, request, fun(_, _, _, _) -> {error, something_went_wrong} end),
 
-                                       Result = stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self()),
+                                       Result = twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self()),
                                        Expected = {error, {http_error, something_went_wrong}},
 
                                        ?assertEqual(Expected, Result)
@@ -125,7 +125,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct url", fun() ->
@@ -138,7 +138,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct params", fun() ->
@@ -153,7 +153,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, PostData, self())
+                                       twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, PostData, self())
 
                                end),
 
@@ -166,7 +166,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end),
 
                            it("should use the correct http client arguments for streaming", fun() ->
@@ -177,7 +177,7 @@ spec() ->
                                            end
                                        ),
 
-                                       stream_client:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
+                                       twerl_stream:connect(?GET_ENDPOINT, ?TEST_AUTH, "", self())
                                end)
                         end)
                    end),
@@ -185,13 +185,13 @@ spec() ->
                describe("connection handler", fun() ->
                        before_each(fun() ->
                                    catch meck:new(httpc, [unstick]),
-                                   catch meck:new(stream_client, [passthrough])
+                                   catch meck:new(twerl_stream, [passthrough])
                            end),
 
                        after_each(fun() ->
                                    ?assertEqual(true, meck:validate(httpc)),
-                                   ?assertEqual(true, meck:validate(stream_client)),
-                                   meck:unload(stream_client),
+                                   ?assertEqual(true, meck:validate(twerl_stream)),
+                                   meck:unload(twerl_stream),
                                    meck:unload(httpc)
                            end),
 
@@ -200,14 +200,14 @@ spec() ->
                                    Callback = 4567,
 
                                    meck:expect(httpc, request, fun(_, _, _, _) -> {ok, RequestId} end),
-                                   meck:expect(stream_client, handle_connection,
+                                   meck:expect(twerl_stream, handle_connection,
                                        fun(PassedCallback, PassedRequestId) ->
                                                ?assertEqual(Callback, PassedCallback),
                                                ?assertEqual(RequestId, PassedRequestId),
                                                {ok, test}
                                        end),
 
-                                   stream_client:connect(?POST_ENDPOINT, ?TEST_AUTH, "", Callback)
+                                   twerl_stream:connect(?POST_ENDPOINT, ?TEST_AUTH, "", Callback)
                            end)
                    end)
            end),
@@ -219,7 +219,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -237,7 +237,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -260,7 +260,7 @@ spec() ->
                            RequestId = 1234,
 
                            Child = spawn(fun() ->
-                                       stream_client:handle_connection(Callback, RequestId)
+                                       twerl_stream:handle_connection(Callback, RequestId)
                                end),
 
                            Data = <<"{\"text\":\"data1234\"}">>,
@@ -284,7 +284,7 @@ spec() ->
                            RequestId = 1234,
 
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -315,7 +315,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -335,7 +335,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -356,7 +356,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 
@@ -377,7 +377,7 @@ spec() ->
 
                            Parent = self(),
                            Child = spawn(fun() ->
-                                       Response = stream_client:handle_connection(Callback, RequestId),
+                                       Response = twerl_stream:handle_connection(Callback, RequestId),
                                        Parent ! {self(), response, Response}
                                end),
 

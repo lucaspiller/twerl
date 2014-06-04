@@ -1,4 +1,4 @@
--module(stream_client).
+-module(twerl_stream).
 -export([
           connect/4,
           handle_connection/2
@@ -8,7 +8,7 @@
 
 -spec connect(string(), list(), string(), fun()) -> ok | {error, reason}.
 connect({post, Url}, Auth, Params, Callback) ->
-    Headers = stream_client_util:headers_for_auth(Auth, {post, Url}, Params),
+    Headers = twerl_util:headers_for_auth(Auth, {post, Url}, Params),
     case catch httpc:request(post, {Url, Headers, ?CONTENT_TYPE, Params}, [], [{sync, false}, {stream, self}]) of
         {ok, RequestId} ->
             ?MODULE:handle_connection(Callback, RequestId);
@@ -18,7 +18,7 @@ connect({post, Url}, Auth, Params, Callback) ->
     end;
 
 connect({get, BaseUrl}, Auth, Params, Callback) ->
-    Headers = stream_client_util:headers_for_auth(Auth, {get, BaseUrl}, Params),
+    Headers = twerl_util:headers_for_auth(Auth, {get, BaseUrl}, Params),
     Url = case Params of
               "" ->
                   BaseUrl;
@@ -44,7 +44,7 @@ handle_connection(Callback, RequestId) ->
         % stream received data
         {http, {RequestId, stream, Data}} ->
             spawn(fun() ->
-                DecodedData = stream_client_util:decode(Data),
+                DecodedData = twerl_util:decode(Data),
                 Callback(DecodedData)
             end),
             handle_connection(Callback, RequestId);

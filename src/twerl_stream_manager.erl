@@ -1,4 +1,4 @@
--module(stream_manager).
+-module(twerl_stream_manager).
 -behaviour(gen_server).
 
 %% gen_server callbacks
@@ -232,9 +232,9 @@ client_connect(#state{auth = Auth, params = Params}) ->
         gen_server:cast(Parent, {client_data, Data})
     end,
 
-    Endpoint = {post, stream_client_util:filter_url()},
+    Endpoint = {post, twerl_util:filter_url()},
     spawn_link(fun() ->
-        case stream_client:connect(Endpoint, Auth, Params, Callback) of
+        case twerl_stream:connect(Endpoint, Auth, Params, Callback) of
             {error, unauthorised} ->
                 % Didn't connect, unauthorised
                 Parent ! {self(), client_exit, unauthorised};

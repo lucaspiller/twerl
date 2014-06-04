@@ -1,4 +1,4 @@
--module(stream_client_util).
+-module(twerl_util).
 -export([
           headers_for_auth/3,
           generate_headers/0,

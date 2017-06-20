@@ -221,7 +221,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
--spec client_connect(record()) -> pid().
+-spec client_connect(#state{}) -> pid().
 client_connect(#state{auth = Auth, params = Params}) ->
     Parent = self(),
 
@@ -250,7 +250,7 @@ client_connect(#state{auth = Auth, params = Params}) ->
         end
     end).
 
--spec client_shutdown(record()) -> ok.
+-spec client_shutdown(#state{}) -> ok.
 client_shutdown(#state{client_pid = Pid}) ->
     case Pid of
         undefined ->

@@ -66,7 +66,7 @@ Start streaming (you can set a callback after, and change it without losing data
 
 Set a callback:
 
-    stream_client_manager:set_params(awesomeness, fun(Data) ->
+    stream_client_manager:set_callback(awesomeness, fun(Data) ->
       Tweet = proplists:get_value(<<"text">>, Data),
       io:format("Erlang <3: ~s~n", [Tweet])
     end).
